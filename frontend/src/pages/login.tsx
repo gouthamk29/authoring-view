@@ -28,7 +28,6 @@ export default function Login() {
     try {
       console.log("connecting to backend");
       setLoading(true);
-      console.log(import.meta.env.VITE_BACKEND_URL);
       const response = await api.post("/api/auth/login", {
         email: formData.email,
         password: formData.password,

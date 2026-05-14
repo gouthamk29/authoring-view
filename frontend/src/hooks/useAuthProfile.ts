@@ -16,11 +16,14 @@ export function useAuthProfile() {
       try {
         setLoading(true);
 
-        const res = await axios.get<User>("http://localhost:8000/api/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const res = await axios.get<User>(
+          `${import.meta.env.VITE_BACKEND_URL}/api/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         setUser(res.data);
       } catch (error) {

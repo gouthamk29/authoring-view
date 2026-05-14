@@ -1,25 +1,9 @@
-import { useState } from "react";
-import { Button } from "./components/Button";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { Button } from "./components/ui/button";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <div
-      className="flex h-full min-h-dvh flex-col"
-      style={{
-        background: "linear-gradient(to bottom right, #1e1f3b, #2d3250)",
-      }}
-    >
-      <nav className="my-4 flex w-9/10 items-center justify-between self-center rounded-xl bg-white/80 px-4 py-3">
-        <div>Logo</div>
-        <ul className="flex gap-2">
-          <NavButton name="Login" link="/login" />
-          <NavButton name="Theme" />
-        </ul>
-      </nav>
-
+    <div className="flex min-h-dvh flex-col bg-gradient-to-br from-[#1e1f3b] to-[#2d3250] text-white">
       <Hero />
     </div>
   );
@@ -27,22 +11,30 @@ function App() {
 
 export default App;
 
-function NavButton({ name, link = "" }) {
-  return (
-    <li className="cursor-pointer rounded-md bg-white/50 px-2 py-1 ring-1 ring-gray-500 hover:bg-white/80 active:bg-white/90">
-      <Link to={link}>{name}</Link>
-    </li>
-  );
-}
+function Hero() {
+  const navigate = useNavigate();
 
-export function Hero() {
   return (
-    <main className="my-8 flex min-h-100 w-8/10 flex-col self-center rounded-md bg-white/60 py-4 shadow-2xl shadow-black/60">
-      <h1 className="m-4 text-3xl font-semibold text-indigo-700/90">
-        An Collabrative Note Editor{" "}
+    <main className="mx-auto mt-16 flex w-[90%] flex-1 flex-col items-center justify-center text-center">
+      <h1 className="text-4xl font-bold tracking-tight">
+        A Notion like Note Editor
       </h1>
-      <div className="mt-auto flex justify-center">
-        <Button>Try now</Button>
+
+      <p className="mt-3 max-w-md text-white/70">Create, edit and share</p>
+
+      <Link to="/dashboard" className="mt-8">
+        <Button className="cursor-pointer px-6 py-2 text-base ring-white hover:ring-2">
+          Try now
+        </Button>
+      </Link>
+
+      <div className="my-6">
+        <span
+          onClick={() => navigate("/signup")}
+          className="cursor-pointer text-sm hover:underline"
+        >
+          Register
+        </span>
       </div>
     </main>
   );

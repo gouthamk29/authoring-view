@@ -55,7 +55,7 @@ const ProfilePage = () => {
   async function handleSave() {
     try {
       const response = await axios.put(
-        "http://localhost:8000/api/profile",
+        `${import.meta.env.VITE_BACKEND_URL}/api/profile`,
         {
           name: tempName || name,
           profileUrl: tempProfileImage || profileImage,

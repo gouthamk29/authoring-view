@@ -29,7 +29,6 @@ export default function Register() {
     try {
       console.log("connecting to backend");
       setLoading(true);
-      console.log(import.meta.env.VITE_BACKEND_URL);
       const response = await api.post("/api/auth/register", {
         email: formData.email,
         password: formData.password,
