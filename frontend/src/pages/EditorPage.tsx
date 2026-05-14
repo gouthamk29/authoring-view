@@ -34,81 +34,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface User {
-  _id: string;
-  email: string;
-}
-
-interface WorkspaceStore {
-  [userId: string]: {
-    workspaces: WorkSpace[];
-  };
-}
-
-export interface WorkSpace {
-  id: string;
-  name: string;
-  description: string;
-  leafNodes: LeafNode[];
-  nodes: TreeNode[];
-  created_at: number;
-}
-
-interface LeafNode {
-  id: string;
-  name: string;
-  data?: any;
-  created_at?: number;
-  last_used?: number;
-  type: "leaf";
-}
-
-interface TreeNode {
-  id: string;
-  name: string;
-  nodes: TreeNode[];
-  leafNodes: LeafNode[];
-  type: "node";
-}
+import type {
+  User,
+  WorkSpace,
+  WorkspaceStore,
+  LeafNode,
+  TreeNode,
+} from "@/types/workspace";
+import { useAuthProfile } from "@/hooks/useAuthProfile";
 
 const EditorPage = () => {
-  const { token, logout } = useAuth();
+  const { logout } = useAuth();
   const { id: workspaceId } = useParams();
-  const [loading, setLoading] = useState(false);
-  const [user, setUserData] = useState<User | null>(null);
   const [workspace, setWorkspace] = useState(null);
   const [acticeLeafNodeId, setActiveLeafId] = useState<string>("");
   const STORAGE_KEY = "workspaces";
 
-  //use effect for authenticating user by using jwt token
-  useEffect(() => {
-    async function getUserData() {
-      try {
-        setLoading(true);
-
-        const res = await axios.get<User>("http://localhost:8000/api/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setUserData(res.data);
-      } catch (error) {
-        console.log(error);
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 401) {
-            logout();
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (token) {
-      getUserData();
-    }
-  }, [token]);
+  const { user, loading } = useAuthProfile();
 
   useEffect(() => {
     //check user exists
