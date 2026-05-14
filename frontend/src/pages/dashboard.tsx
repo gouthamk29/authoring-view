@@ -27,15 +27,24 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import type { WorkSpace } from "./EditorPage";
 
 interface User {
   _id: string;
   email: string;
 }
 
-interface Workspace {
-  name: string;
-  description: string;
+// interface Workspace {
+//   name: string;
+//   description: string;
+//   data: any;
+//   id: string;
+// }
+
+interface WorkspaceStore {
+  [userId: string]: {
+    workspaces: WorkSpace[];
+  };
 }
 
 const Dashboard = () => {
@@ -44,8 +53,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [data, setUserData] = useState<User | null>(null);
   const [searchValue, setSearchValue] = useState<string>("");
-
-  const [workspace, SetWorkspace] = useState<Workspace[]>([]);
+  const [workspace, SetWorkspace] = useState<WorkSpace[]>([]);
 
   useEffect(() => {
     async function getUserData() {
@@ -75,6 +83,32 @@ const Dashboard = () => {
       getUserData();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!data?._id) return;
+
+    const store: WorkspaceStore = JSON.parse(
+      localStorage.getItem("workspaces") || "{}",
+    );
+
+    const userWorkspaces = store[data._id]?.workspaces || [];
+
+    SetWorkspace(userWorkspaces);
+  }, [data]);
+
+  useEffect(() => {
+    if (!data?._id) return;
+
+    const store: WorkspaceStore = JSON.parse(
+      localStorage.getItem("workspaces") || "{}",
+    );
+
+    store[data._id] = {
+      workspaces: workspace,
+    };
+
+    localStorage.setItem("workspaces", JSON.stringify(store));
+  }, [workspace, data]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -114,7 +148,7 @@ const Dashboard = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </nav>
-      <Separator className="my-2" />
+      {/* <Separator className="my-2" /> */}
       <main className="mx-4">
         <div>
           <h1 className="text-4xl">My WorkSpace</h1>
@@ -135,11 +169,17 @@ const Dashboard = () => {
                       <div>
                         <Label className="font-extrabold">{w.name}</Label>
                       </div>
-                      <div className="mx-1 text-right font-light text-gray-600">
+                      <div className="mx-1 my-2 text-left font-light text-gray-600">
                         {w.description}
                       </div>
                       <div className="flex justify-end">
-                        <Button>View</Button>
+                        <Button
+                          onClick={() => {
+                            navigate(`/${w.id}/editor`);
+                          }}
+                        >
+                          View
+                        </Button>
                       </div>
                     </div>
                   );
@@ -166,7 +206,7 @@ const Dashboard = () => {
 export default Dashboard;
 
 interface CreateWorkspaceDialogProps {
-  setWorkSpace: React.Dispatch<React.SetStateAction<Workspace[]>>;
+  setWorkSpace: React.Dispatch<React.SetStateAction<WorkSpace[]>>;
 }
 
 export function CreateWorkspaceDialog({
@@ -178,9 +218,13 @@ export function CreateWorkspaceDialog({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const workspace = {
+    const workspace: WorkSpace = {
       name,
       description,
+      id: crypto.randomUUID(),
+      leafNodes: [],
+      nodes: [],
+      created_at: Date.now(),
     };
 
     console.log(workspace);

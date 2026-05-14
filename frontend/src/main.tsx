@@ -7,6 +7,7 @@ import Login from "./pages/login.tsx";
 import Register from "./pages/register.tsx";
 import { AuthProvider } from "./context/AuthContext.tsx";
 import Dashboard from "./pages/dashboard.tsx";
+import EditorPage from "./pages/EditorPage.tsx";
 
 function protectedLoader() {
   const token = localStorage.getItem("token");
@@ -37,6 +38,10 @@ const router = createBrowserRouter([
       {
         path: "/dashboard",
         element: <Dashboard />,
+      },
+      {
+        path: ":id/editor",
+        element: <EditorPage />,
       },
     ],
   },
