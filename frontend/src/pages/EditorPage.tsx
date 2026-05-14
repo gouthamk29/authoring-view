@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
 import MainEditor from "@/components/MainEditor";
 import {
@@ -10,9 +10,26 @@ import {
   SidebarInset,
   SidebarTriggerWithIcon,
 } from "@/components/ui/sidebar";
-import { ChevronRight, LayersPlus, Menu, Plus } from "lucide-react";
+import {
+  ChevronRight,
+  LayersPlus,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  UserPen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { InputWithIcon } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface User {
   _id: string;
@@ -392,7 +409,12 @@ const EditorPage = () => {
             activeLeafId={acticeLeafNodeId}
           />
           <SidebarInset>
-            <NavBar workspaceId={workspaceId} user={user} />
+            <NavBar
+              workSpace={workspace}
+              user={user}
+              onLeafClick={handleLeafClick}
+              activeLeafId={acticeLeafNodeId}
+            />
             {acticeLeafNodeId == "empty" && <div>Empty Nodes, add Node</div>}
             {acticeLeafNodeId !== "empty" && (
               <MainEditor
@@ -633,17 +655,137 @@ function LeafItem({
   );
 }
 
-function NavBar({ workspaceId, user }) {
+interface NavBarType {
+  workSpace: WorkSpace;
+  user: User;
+  onLeafClick: (leafId: string) => void;
+  activeLeafId: string;
+}
+
+function NavBar({ workSpace, user, onLeafClick, activeLeafId }: NavBarType) {
+  if (!workSpace || !user) return;
+
+  const [search, setSearch] = useState("");
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  function getAllLeafNodes(workspace: WorkSpace): LeafNode[] {
+    const result: LeafNode[] = [];
+
+    function traverse(nodes: TreeNode[]) {
+      for (const node of nodes) {
+        result.push(...node.leafNodes);
+
+        traverse(node.nodes);
+      }
+    }
+
+    result.push(...workspace.leafNodes);
+
+    traverse(workspace.nodes);
+
+    return result;
+  }
+
+  const filteredNodes = getAllLeafNodes(workSpace).filter((leaf) =>
+    leaf.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setSearch("");
+      }
+    }
+
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearch("");
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <nav className="flex">
-      <div>
-        <SidebarTriggerWithIcon className="rounded-full border">
+    <nav className="m-4 flex items-center rounded-md border px-4 py-2">
+      <div className="m-2">
+        <SidebarTriggerWithIcon className="">
           <Menu size={18} />
         </SidebarTriggerWithIcon>
       </div>
-      <div> SideBar </div>
-      <div>
-        WorkSpaceid:{workspaceId} UserId:{user?._id}
+      <div ref={searchRef} className="relative flex-1">
+        <InputWithIcon
+          icon={<Search size={20} />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search workspace: ${workSpace.name}`}
+        />
+
+        {search.length > 0 && (
+          <div className="bg-background absolute top-20 right-20 left-20 z-999 max-h-72 min-h-10 overflow-y-auto rounded-md border shadow-md">
+            {filteredNodes.map((leaf) => {
+              return (
+                <div
+                  className="m-2 cursor-pointer rounded-sm border p-1"
+                  onClick={() => {
+                    onLeafClick(leaf.id);
+                    setSearch("");
+                  }}
+                >
+                  {leaf.name}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="m-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Avatar>
+              <AvatarImage
+                src="https://github.com/shadcn.png"
+                alt="@shadcn"
+                className="grayscale"
+              />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => {
+                  logout();
+                  navigate(0);
+                }}
+              >
+                <LogOut />
+                LogOut
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate(`/${user._id}/profile`);
+                }}
+              >
+                <UserPen />
+                Profile
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </nav>
   );
