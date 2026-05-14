@@ -11,6 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router";
 import type { User } from "@/types/workspace";
+import { useTheme } from "../theme-provider";
+import { Switch } from "../ui/switch";
+import { useEffect, useState } from "react";
 
 type Navbar = {
   searchValue: string;
@@ -21,6 +24,21 @@ type Navbar = {
 export function Navbar({ searchValue, setSearchValue, user }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
+  const [checked, setChecked] = useState(isDark);
+
+  useEffect(() => {
+    setChecked(isDark);
+  }, [isDark]);
+
+  function toggleTheme() {
+    const newTheme = isDark ? "light" : "dark";
+    setTheme(newTheme);
+    setChecked(!isDark);
+  }
+
   return (
     <nav className="my-4 flex justify-between px-4">
       <div className="mx-2 flex-1">
@@ -63,6 +81,13 @@ export function Navbar({ searchValue, setSearchValue, user }) {
             >
               <LogOut />
               LogOut
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <div className="flex w-full items-center justify-between gap-2">
+                <span>Dark mode</span>
+                <Switch checked={checked} onCheckedChange={toggleTheme} />
+              </div>
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>

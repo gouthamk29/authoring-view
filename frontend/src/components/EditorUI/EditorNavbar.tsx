@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useTheme } from "../theme-provider";
+import { Switch } from "../ui/switch";
 
 interface NavBarType {
   workSpace: WorkSpace;
@@ -32,6 +34,20 @@ export function NavBar({
   const [search, setSearch] = useState("");
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
+  const [checked, setChecked] = useState(isDark);
+
+  useEffect(() => {
+    setChecked(isDark);
+  }, [isDark]);
+
+  function toggleTheme() {
+    const newTheme = isDark ? "light" : "dark";
+    setTheme(newTheme);
+    setChecked(!isDark);
+  }
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +173,13 @@ export function NavBar({
               >
                 <LayoutDashboard />
                 DashBoard
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span>Dark mode</span>
+                  <Switch checked={checked} onCheckedChange={toggleTheme} />
+                </div>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

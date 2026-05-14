@@ -3,6 +3,7 @@ import { BlockNoteView } from "@blocknote/shadcn";
 import { useEffect, useRef } from "react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
+import { useTheme } from "./theme-provider";
 
 interface MainEditorProps {
   document: any;
@@ -12,6 +13,10 @@ interface MainEditorProps {
 
 export default function MainEditor({ document, onChange }: MainEditorProps) {
   const editor = useCreateBlockNote();
+
+  const { theme } = useTheme();
+
+  const normaliseTheme = theme === "system" ? "dark" : theme;
 
   const hasLoadedDocument = useRef(false);
 
@@ -42,7 +47,7 @@ export default function MainEditor({ document, onChange }: MainEditorProps) {
   return (
     <div className="mx-8 rounded-xl border p-4">
       <div className="w-full overflow-visible px-4">
-        <BlockNoteView editor={editor} theme="light" />
+        <BlockNoteView editor={editor} theme={normaliseTheme} />
       </div>
     </div>
   );

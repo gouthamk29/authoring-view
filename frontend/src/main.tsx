@@ -9,6 +9,7 @@ import { AuthProvider } from "./context/AuthContext.tsx";
 import Dashboard from "./pages/dashboard.tsx";
 import EditorPage from "./pages/EditorPage.tsx";
 import ProfilePage from "./pages/profilePage.tsx";
+import { ThemeProvider } from "./components/theme-provider.tsx";
 
 function protectedLoader() {
   const token = localStorage.getItem("token");
@@ -53,8 +54,10 @@ const router = createBrowserRouter([
 ]);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeProvider>
   </StrictMode>,
 );
