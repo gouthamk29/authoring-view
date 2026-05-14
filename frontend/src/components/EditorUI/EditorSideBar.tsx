@@ -5,6 +5,60 @@ import { useState } from "react";
 import { ChevronRight, LayersPlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+/* =========================
+   DELETE CONFIRM MODAL
+========================= */
+
+function DeleteConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
 export function WorkSpaceSidebar({
   workspace,
   addNode,
@@ -27,16 +81,13 @@ export function WorkSpaceSidebar({
   deleteLeaf: (nodeId: string) => void;
 }) {
   function handleAddCollection() {
-    let parentId = null;
-    let random = Math.floor(Math.random() * 10000);
-    addNode(`Collection:${String(random)}`, parentId);
+    const random = Math.floor(Math.random() * 10000);
+    addNode(`Collection:${random}`, null);
   }
 
   function handleAddLeafNode() {
-    let parentId = null;
-    let random = Math.floor(Math.random() * 10000);
-
-    addLeaf(`Leaf:${String(random)}`, parentId);
+    const random = Math.floor(Math.random() * 10000);
+    addLeaf(`Leaf:${random}`, null);
   }
 
   return (
@@ -54,6 +105,7 @@ export function WorkSpaceSidebar({
             <LayersPlus size={16} />
             Add Collection
           </Button>
+
           <Button
             onClick={handleAddLeafNode}
             className="flex-1 gap-2 bg-blue-500 text-white hover:bg-blue-600"
@@ -63,199 +115,111 @@ export function WorkSpaceSidebar({
           </Button>
         </div>
 
-        <div>
-          <div>
-            <TreeViewer
-              workspace={workspace}
-              addNode={addNode}
-              addLeaf={addLeaf}
-              onLeafClick={onLeafClick}
-              activeLeafId={activeLeafId}
-              renameNode={renameNode}
-              deleteNode={deleteNode}
-              renameLeaf={renameLeaf}
-              deleteLeaf={deleteLeaf}
-            />
-          </div>
-        </div>
-      </div>
-    </Sidebar>
-  );
-}
-
-function TreeViewer({
-  workspace,
-  addNode,
-  addLeaf,
-  onLeafClick,
-  activeLeafId,
-  renameNode,
-  deleteNode,
-  renameLeaf,
-  deleteLeaf,
-}: {
-  workspace: WorkSpace;
-  addNode: (name: string, parentId: string | null) => void;
-  addLeaf: (name: string, parentId: string | null) => void;
-  onLeafClick: (leafId: string) => void;
-  activeLeafId: string;
-  renameNode: (nodeId: string, newName: string) => void;
-  deleteNode: (nodeId: string) => void;
-  renameLeaf: (nodeId: string, newName: string) => void;
-  deleteLeaf: (nodeId: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      {workspace?.nodes?.map((node) => (
-        <NodeItem
-          key={node.id}
-          activeLeafId={activeLeafId}
+        <TreeViewer
+          workspace={workspace}
           addNode={addNode}
-          node={node}
           addLeaf={addLeaf}
           onLeafClick={onLeafClick}
-          depth={0}
+          activeLeafId={activeLeafId}
           renameNode={renameNode}
           deleteNode={deleteNode}
           renameLeaf={renameLeaf}
           deleteLeaf={deleteLeaf}
         />
+      </div>
+    </Sidebar>
+  );
+}
+
+/* =========================
+   TREE VIEWER
+========================= */
+
+function TreeViewer(props: any) {
+  return (
+    <div className="flex flex-col gap-1">
+      {props.workspace?.nodes?.map((node: TreeNode) => (
+        <NodeItem key={node.id} {...props} node={node} depth={0} />
       ))}
-      {workspace?.leafNodes?.map((leaf) => (
-        <LeafItem
-          onLeafClick={onLeafClick}
-          leaf={leaf}
-          activeLeafId={activeLeafId}
-          depth={0}
-          renameLeaf={renameLeaf}
-          deleteLeaf={deleteLeaf}
-        />
+
+      {props.workspace?.leafNodes?.map((leaf: LeafNode) => (
+        <LeafItem key={leaf.id} {...props} leaf={leaf} depth={0} />
       ))}
     </div>
   );
 }
 
-interface LeafNodeItemType {
-  onLeafClick: (leafId: string) => void;
-  leaf: LeafNode;
-  activeLeafId: string;
-  depth: number;
-  renameLeaf: (nodeId: string, newName: string) => void;
-  deleteLeaf: (nodeId: string) => void;
-}
+/* =========================
+   NODE ITEM
+========================= */
 
-interface NodeItemType {
-  node: TreeNode;
-  addNode: (name: string, parentId: string | null) => void;
-  addLeaf: (name: string, parentId: string | null) => void;
-  activeLeafId: string;
-  onLeafClick: (leafId: string) => void;
-  depth: number;
-  renameNode: (nodeId: string, newName: string) => void;
-  deleteNode: (nodeId: string) => void;
-  renameLeaf: (nodeId: string, newName: string) => void;
-  deleteLeaf: (nodeId: string) => void;
-}
 function NodeItem({
   node,
-  activeLeafId,
   addLeaf,
   addNode,
   onLeafClick,
+  activeLeafId,
   depth,
   renameNode,
   deleteNode,
   renameLeaf,
   deleteLeaf,
-}: NodeItemType) {
+}: any) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(node.name);
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   const hasChildren = node.nodes.length > 0 || node.leafNodes.length > 0;
 
   return (
-    <div
-      className="mt-1"
-      style={{
-        marginLeft: `${depth * 1.25}rem`,
-      }}
-    >
+    <div className="mt-1" style={{ marginLeft: `${depth * 1.25}rem` }}>
       <div
-        onClick={() => {
-          if (hasChildren) {
-            setIsExpanded((prev) => !prev);
-          }
-        }}
+        onClick={() => hasChildren && setIsExpanded((p: boolean) => !p)}
         className={cn(
-          "flex cursor-pointer items-center justify-between rounded-md border p-2 transition-colors",
+          "flex cursor-pointer items-center justify-between rounded-md border p-2",
           "bg-green-200 hover:bg-green-300",
         )}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex flex-1 items-center gap-2">
           {hasChildren && (
-            <div
-              className="flex h-4 w-4 items-center justify-center transition-transform duration-200"
-              style={{
-                transform: `rotate(${isExpanded ? 90 : 0}deg)`,
-              }}
-            >
-              <ChevronRight size={16} />
-            </div>
+            <ChevronRight
+              size={16}
+              className={cn("transition-transform", isExpanded && "rotate-90")}
+            />
           )}
 
-          <div className="min-w-0 flex-1">
-            {editing ? (
-              <input
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onBlur={() => {
-                  renameNode(node.id, name);
-                  setEditing(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    renameNode(node.id, name);
-                    setEditing(false);
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full rounded border bg-white px-2 py-1 text-sm text-black outline-none"
-              />
-            ) : (
-              <span className="truncate text-sm font-medium">{node.name}</span>
-            )}
-          </div>
+          {editing ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => {
+                renameNode(node.id, name);
+                setEditing(false);
+              }}
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          ) : (
+            <span className="truncate text-sm font-medium">{node.name}</span>
+          )}
         </div>
 
         <div
-          className="ml-2 flex items-center gap-2"
+          className="flex items-center gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <Pencil
-            size={15}
-            className="cursor-pointer opacity-70 transition-opacity hover:opacity-100"
-            onClick={() => setEditing(true)}
-          />
+          <Pencil size={15} onClick={() => setEditing(true)} />
 
           <Trash2
             size={15}
-            className="cursor-pointer text-red-500 opacity-70 transition-opacity hover:opacity-100"
-            onClick={() => {
-              const confirmDelete = confirm(
-                `Delete "${node.name}" and all children?`,
-              );
-
-              if (confirmDelete) {
-                deleteNode(node.id);
-              }
-            }}
+            className="text-red-500"
+            onClick={() => setDeleteOpen(true)}
           />
 
           <LayersPlus
             size={15}
-            className="cursor-pointer opacity-70 transition-opacity hover:opacity-100"
             onClick={() => {
               setIsExpanded(true);
               addNode("New Collection", node.id);
@@ -264,7 +228,6 @@ function NodeItem({
 
           <Plus
             size={15}
-            className="cursor-pointer opacity-70 transition-opacity hover:opacity-100"
             onClick={() => {
               setIsExpanded(true);
               addLeaf("New Note", node.id);
@@ -274,68 +237,69 @@ function NodeItem({
       </div>
 
       {isExpanded && (
-        <div className="mt-1 flex flex-col">
-          {node.nodes.map((childNode) => (
+        <div className="mt-1">
+          {node.nodes.map((child: TreeNode) => (
             <NodeItem
-              key={childNode.id}
-              node={childNode}
-              activeLeafId={activeLeafId}
-              addLeaf={addLeaf}
-              addNode={addNode}
-              onLeafClick={onLeafClick}
+              key={child.id}
+              {...arguments[0]}
+              node={child}
               depth={depth + 1}
-              renameNode={renameNode}
-              deleteNode={deleteNode}
-              renameLeaf={renameLeaf}
-              deleteLeaf={deleteLeaf}
             />
           ))}
 
-          {node.leafNodes.map((leaf) => (
+          {node.leafNodes.map((leaf: LeafNode) => (
             <LeafItem
               key={leaf.id}
+              {...arguments[0]}
               leaf={leaf}
-              activeLeafId={activeLeafId}
-              onLeafClick={onLeafClick}
               depth={depth + 1}
-              renameLeaf={renameLeaf}
-              deleteLeaf={deleteLeaf}
             />
           ))}
         </div>
       )}
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Collection"
+        description={`Delete "${node.name}" and all its children?`}
+        onConfirm={() => {
+          deleteNode(node.id);
+          setDeleteOpen(false);
+        }}
+      />
     </div>
   );
 }
 
+/* =========================
+   LEAF ITEM
+========================= */
+
 function LeafItem({
-  onLeafClick,
   leaf,
+  onLeafClick,
   activeLeafId,
   depth,
   renameLeaf,
   deleteLeaf,
-}: LeafNodeItemType) {
+}: any) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(leaf.name);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
-    <div
-      className="mt-1"
-      style={{
-        marginLeft: `${depth * 1.25}rem`,
-      }}
-    >
+    <div className="mt-1" style={{ marginLeft: `${depth * 1.25}rem` }}>
       <div
         className={cn(
-          "flex items-center justify-between rounded-md border p-2 transition-colors",
+          "flex items-center justify-between rounded-md border p-2",
           activeLeafId === leaf.id
-            ? "border-green-500 bg-blue-700 text-white"
+            ? "bg-blue-700 text-white"
             : "bg-blue-200 hover:bg-blue-300",
         )}
       >
         <div
-          className="min-w-0 flex-1 cursor-pointer"
+          className="flex-1 cursor-pointer"
           onClick={() => onLeafClick(leaf.id)}
         >
           {editing ? (
@@ -347,44 +311,37 @@ function LeafItem({
                 renameLeaf(leaf.id, name);
                 setEditing(false);
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  renameLeaf(leaf.id, name);
-                  setEditing(false);
-                }
-              }}
-              className="w-full rounded border bg-white px-2 py-1 text-sm text-black outline-none"
+              className="w-full rounded border px-2 py-1 text-sm"
             />
           ) : (
             <span className="truncate text-sm font-medium">{leaf.name}</span>
           )}
         </div>
 
-        <div className="ml-2 flex items-center gap-2">
-          <Pencil
-            size={15}
-            className="cursor-pointer opacity-70 transition-opacity hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-          />
+        <div className="flex items-center gap-2">
+          <Pencil size={15} onClick={() => setEditing(true)} />
 
           <Trash2
             size={15}
-            className="cursor-pointer text-red-500 opacity-70 transition-opacity hover:opacity-100"
+            className="text-red-500"
             onClick={(e) => {
               e.stopPropagation();
-
-              const confirmDelete = confirm(`Delete "${leaf.name}"?`);
-
-              if (confirmDelete) {
-                deleteLeaf(leaf.id);
-              }
+              setDeleteOpen(true);
             }}
           />
         </div>
       </div>
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Note"
+        description={`Delete "${leaf.name}"?`}
+        onConfirm={() => {
+          deleteLeaf(leaf.id);
+          setDeleteOpen(false);
+        }}
+      />
     </div>
   );
 }

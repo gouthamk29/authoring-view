@@ -7,6 +7,7 @@ export default function Register() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    name: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function Register() {
       const response = await api.post("/api/auth/register", {
         email: formData.email,
         password: formData.password,
+        name: formData.name,
       });
 
       const token = response.data.token;
@@ -61,6 +63,18 @@ export default function Register() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white">Welcome Onboard</h1>
           <p className="mt-2 text-sm text-gray-300">Register to continue</p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-white">Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Enter your Name"
+            className="rounded-lg border border-gray-500 bg-white/10 px-4 py-3 text-white transition outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-orange-400"
+          />
         </div>
 
         <div className="flex flex-col gap-2">

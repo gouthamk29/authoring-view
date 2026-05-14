@@ -26,4 +26,41 @@ router.get(
   },
 );
 
+router.put(
+  "/",
+  protect,
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { name, profileUrl } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user?.id,
+        {
+          ...(name !== undefined && { name }),
+          ...(profileUrl !== undefined && { profileUrl }),
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      ).select("-password");
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Profile updated successfully",
+        user: updatedUser,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 export default router;

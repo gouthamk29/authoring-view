@@ -1,6 +1,8 @@
 export interface User {
   _id: string;
   email: string;
+  name: string;
+  profileUrl?: string;
 }
 
 export interface WorkspaceStore {
