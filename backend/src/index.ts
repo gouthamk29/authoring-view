@@ -17,12 +17,7 @@ try {
   console.error(error);
 }
 
-app.use(
-  cors({
-    origin: `http://localhost:${FRONTEND_PORT}`,
-    credentials: true,
-  }),
-);
+app.use(cors());
 
 app.use("/api/profile", userRoute);
 
