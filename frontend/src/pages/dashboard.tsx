@@ -1,7 +1,14 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { HamburgerIcon, LogOut, Menu, Plus, Search } from "lucide-react";
+import {
+  HamburgerIcon,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  UserPen,
+} from "lucide-react";
 import { Input, InputWithIcon } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -28,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import type { WorkSpace } from "./EditorPage";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface User {
   _id: string;
@@ -130,11 +138,27 @@ const Dashboard = () => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">UserProfile</Button>
+            <Avatar>
+              <AvatarImage
+                src="https://github.com/shadcn.png"
+                alt="@shadcn"
+                className="grayscale"
+              />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent>
             <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => {
+                  navigate(`/${data._id}/profile`);
+                }}
+              >
+                <UserPen />
+                Profile
+              </DropdownMenuItem>
+
               <DropdownMenuItem
                 onClick={() => {
                   logout();
