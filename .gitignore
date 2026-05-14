@@ -26,7 +26,7 @@ dist-ssr
 
 
 .env
-*.env.*
+*.env
 
 docker-data/
 postgres-data/
