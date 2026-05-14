@@ -31,7 +31,7 @@ A simple full-stack **REACT** , Node.js + MongoDB application with Docker suppor
 
 ```bash
 git clone https://github.com/gouthamk29/authoring-view.git
-cd author-app
+cd authoring-view/
 ```
 
 ### 2. Create environment file
