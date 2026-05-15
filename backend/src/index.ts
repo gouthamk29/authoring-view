@@ -1,9 +1,9 @@
 import express from "express";
-import { errorHandler } from "./middleware/errorHandler";
-import authRoute from "./routes/authRoute";
-import userRoute from "./routes/userRoute";
+import { errorHandler } from "./middleware/errorHandler.js";
+import authRoute from "./routes/authRoute.js";
+import userRoute from "./routes/userRoute.js";
 import cors from "cors";
-import connectDB from "./utils/db";
+import connectDB from "./utils/db.js";
 const PORT = process.env.PORT || 8000;
 const FRONTEND_PORT = process.env.FRONTEND_PORT || 5173;
 
