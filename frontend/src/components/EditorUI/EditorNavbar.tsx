@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import type { LeafNode, TreeNode, User, WorkSpace } from "@/types/workspace";
+import type { LeafNode, TreeNode, WorkSpace } from "@/types/workspace";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { SidebarTriggerWithIcon } from "../ui/sidebar";
@@ -15,21 +15,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useTheme } from "../theme-provider";
 import { Switch } from "../ui/switch";
+import { useNodeStore } from "@/store/nodeStore";
+import { useAuthProfile } from "@/hooks/useAuthProfile";
+import { useClickOutside } from "@/hooks/useClickOutside";
+import { useEscapekey } from "@/hooks/useEscapekey";
 
-interface NavBarType {
-  workSpace: WorkSpace;
-  user: User;
-  onLeafClick: (leafId: string) => void;
-  activeLeafId: string;
-}
+export function NavBar() {
+  const workSpace = useNodeStore((state) => state.workSpace);
+  const onLeafClick = useNodeStore((state) => state.handleLeafClick);
 
-export function NavBar({
-  workSpace,
-  user,
-  onLeafClick,
-  activeLeafId,
-}: NavBarType) {
-  if (!workSpace || !user) return;
+  const { user } = useAuthProfile();
 
   const [search, setSearch] = useState("");
   const { logout } = useAuth();
@@ -39,9 +34,22 @@ export function NavBar({
   const isDark = theme === "dark";
   const [checked, setChecked] = useState(isDark);
 
+  const searchRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setChecked(isDark);
   }, [isDark]);
+
+  useClickOutside(searchRef, () => {
+    setSearch("");
+  });
+  useEscapekey(() => {
+    setSearch("");
+  });
+
+  if (!workSpace || !user) {
+    return null;
+  }
 
   function toggleTheme() {
     const newTheme = isDark ? "light" : "dark";
@@ -49,59 +57,18 @@ export function NavBar({
     setChecked(!isDark);
   }
 
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  function getAllLeafNodes(workspace: WorkSpace): LeafNode[] {
-    const result: LeafNode[] = [];
-
-    function traverse(nodes: TreeNode[]) {
-      for (const node of nodes) {
-        result.push(...node.leafNodes);
-
-        traverse(node.nodes);
-      }
-    }
-
-    result.push(...workspace.leafNodes);
-
-    traverse(workspace.nodes);
-
-    return result;
-  }
-
   const filteredNodes = getAllLeafNodes(workSpace).filter((leaf) =>
     leaf.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSearch("");
-      }
-    }
-
-    function handleClickOutside(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearch("");
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   return (
     <nav className="m-4 flex items-center rounded-md border px-4 py-2">
       <div className="m-2">
-        <SidebarTriggerWithIcon className="">
+        <SidebarTriggerWithIcon>
           <Menu size={18} />
         </SidebarTriggerWithIcon>
       </div>
+
       <div ref={searchRef} className="relative flex-1">
         <InputWithIcon
           icon={<Search size={20} />}
@@ -112,21 +79,21 @@ export function NavBar({
 
         {search.length > 0 && (
           <div className="bg-background absolute top-20 right-20 left-20 z-999 max-h-72 min-h-10 overflow-y-auto rounded-md border shadow-md">
-            {filteredNodes.map((leaf) => {
-              return (
-                <div
-                  className="m-2 cursor-pointer rounded-sm border p-1"
-                  onClick={() => {
-                    onLeafClick(leaf.id);
-                    setSearch("");
-                  }}
-                >
-                  {leaf.name}
-                </div>
-              );
-            })}
+            {filteredNodes.map((leaf) => (
+              <div
+                key={leaf.id}
+                className="m-2 cursor-pointer rounded-sm border p-1"
+                onClick={() => {
+                  onLeafClick(leaf.id);
+                  setSearch("");
+                }}
+              >
+                {leaf.name}
+              </div>
+            ))}
+
             {filteredNodes.length === 0 && (
-              <div className="m-2">Node Not found</div>
+              <div className="m-2">Node not found</div>
             )}
           </div>
         )}
@@ -157,6 +124,7 @@ export function NavBar({
                 LogOut
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
             <DropdownMenuGroup>
               <DropdownMenuItem
                 onClick={() => {
@@ -166,13 +134,14 @@ export function NavBar({
                 <UserPen />
                 Profile
               </DropdownMenuItem>
+
               <DropdownMenuItem
                 onClick={() => {
                   navigate("/dashboard");
                 }}
               >
                 <LayoutDashboard />
-                DashBoard
+                Dashboard
               </DropdownMenuItem>
 
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -187,4 +156,20 @@ export function NavBar({
       </div>
     </nav>
   );
+}
+
+function getAllLeafNodes(workspace: WorkSpace): LeafNode[] {
+  const result: LeafNode[] = [];
+
+  function traverse(nodes: TreeNode[] = []) {
+    for (const node of nodes) {
+      result.push(...(node.leafNodes ?? []));
+      traverse(node.nodes ?? []);
+    }
+  }
+
+  result.push(...(workspace.leafNodes ?? []));
+  traverse(workspace.nodes ?? []);
+
+  return result;
 }

@@ -7,7 +7,6 @@ import { useTheme } from "./theme-provider";
 
 interface MainEditorProps {
   document: any;
-
   onChange: (data: any) => void;
 }
 
@@ -15,25 +14,26 @@ export default function MainEditor({ document, onChange }: MainEditorProps) {
   const editor = useCreateBlockNote();
 
   const { theme } = useTheme();
-
   const normaliseTheme = theme === "system" ? "dark" : theme;
 
   const hasLoadedDocument = useRef(false);
 
   useEffect(() => {
-    if (hasLoadedDocument.current) {
-      return;
-    }
-    if (document && document.length > 0) {
+    if (hasLoadedDocument.current) return;
+
+    if (Array.isArray(document) && document.length > 0) {
       editor.replaceBlocks(editor.document, document);
     }
+
     hasLoadedDocument.current = true;
-  }, [document]);
+  }, [document, editor]);
 
   useEffect(() => {
-    let timeout;
-    const delayedSave = editor.onChange(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const unsubscribe = editor.onChange(() => {
       clearTimeout(timeout);
+
       timeout = setTimeout(() => {
         onChange(editor.document);
       }, 500);
@@ -41,9 +41,10 @@ export default function MainEditor({ document, onChange }: MainEditorProps) {
 
     return () => {
       clearTimeout(timeout);
-      delayedSave();
+      unsubscribe();
     };
-  }, []);
+  }, [editor, onChange]);
+
   return (
     <div className="mx-8 rounded-xl border p-4">
       <div className="w-full overflow-visible px-4">

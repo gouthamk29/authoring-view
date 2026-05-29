@@ -4,78 +4,76 @@ import { useParams } from "react-router";
 import MainEditor from "@/components/MainEditor";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
-import type { WorkSpace, TreeNode } from "@/types/workspace";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
 import { WorkSpaceSidebar } from "@/components/EditorUI/EditorSideBar";
 import { NavBar } from "@/components/EditorUI/EditorNavbar";
 import { useNodeStore } from "@/store/nodeStore";
+import { useEditorStore } from "@/store/editorStore";
 
 const EditorPage = () => {
   const { id: workspaceId } = useParams();
-
-  const {
-    workSpace: workspace,
-    initWorkSpace,
-    addNode,
-    addLeafNode,
-    activeLeafData,
-    activeLeafNodeId: acticeLeafNodeId,
-    deleteLeaf,
-    handleDocumentChange,
-    deleteNode,
-    handleLeafClick,
-    renameLeaf,
-    renameNode,
-  } = useNodeStore();
-
   const { user } = useAuthProfile();
 
+  const initWorkSpace = useNodeStore((state) => state.initWorkSpace);
+  const activeLeafNodeId = useNodeStore((state) => state.activeLeafNodeId);
+  const addLeafNode = useNodeStore((state) => state.addLeafNode);
+
+  const activeDocument = useEditorStore((state) => state.activeDocument);
+  const loadDocument = useEditorStore((state) => state.loadDocument);
+  const clearDocument = useEditorStore((state) => state.clearDocument);
+  const handleDocumentChange = useEditorStore(
+    (state) => state.handleDocumentChange,
+  );
+
   useEffect(() => {
-    // check user exists
     if (!workspaceId || !user?._id) return;
-    //initialise workspace
-    try {
-      initWorkSpace(workspaceId, user._id);
-    } catch (error) {
-      console.error(error);
+
+    initWorkSpace(workspaceId, user._id);
+  }, [workspaceId, user?._id, initWorkSpace]);
+
+  useEffect(() => {
+    if (!workspaceId || !user?._id || !activeLeafNodeId) return;
+
+    if (activeLeafNodeId === "empty") {
+      clearDocument();
+      return;
     }
-  }, [workspaceId, user?._id]);
+
+    loadDocument(user._id, workspaceId, activeLeafNodeId);
+  }, [workspaceId, user?._id, activeLeafNodeId, loadDocument, clearDocument]);
+
+  if (!workspaceId || !user?._id) {
+    return null;
+  }
 
   return (
     <div className="flex h-full min-h-dvh w-full flex-col">
-      <div>
-        <SidebarProvider>
-          <WorkSpaceSidebar
-            workspace={workspace}
-            addNode={addNode}
-            addLeaf={addLeafNode}
-            onLeafClick={handleLeafClick}
-            activeLeafId={acticeLeafNodeId}
-            renameNode={renameNode}
-            deleteNode={deleteNode}
-            renameLeaf={renameLeaf}
-            deleteLeaf={deleteLeaf}
-          />
-          <SidebarInset>
-            <NavBar
-              workSpace={workspace}
-              user={user}
-              onLeafClick={handleLeafClick}
-              activeLeafId={acticeLeafNodeId}
+      <SidebarProvider>
+        <WorkSpaceSidebar />
+
+        <SidebarInset>
+          <NavBar />
+
+          {activeLeafNodeId === "empty" && (
+            <EmptyContentComponent addNote={addLeafNode} />
+          )}
+
+          {activeLeafNodeId !== "empty" && (
+            <MainEditor
+              key={activeLeafNodeId}
+              document={activeDocument}
+              onChange={(newDocument) => {
+                handleDocumentChange(
+                  newDocument,
+                  user._id,
+                  activeLeafNodeId,
+                  workspaceId,
+                );
+              }}
             />
-            {acticeLeafNodeId == "empty" && (
-              <EmptyContentComponent addNote={addLeafNode} />
-            )}
-            {acticeLeafNodeId !== "empty" && (
-              <MainEditor
-                key={acticeLeafNodeId}
-                document={activeLeafData}
-                onChange={handleDocumentChange}
-              />
-            )}
-          </SidebarInset>
-        </SidebarProvider>
-      </div>
+          )}
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   );
 };
@@ -85,16 +83,16 @@ export default EditorPage;
 function EmptyContentComponent({
   addNote,
 }: {
-  addNote: (name: string, parentId: string) => void;
+  addNote: (name: string, parentId: string | null) => void;
 }) {
   return (
     <div className="mx-10 flex min-h-80 items-center justify-between rounded-xl bg-gray-400/80">
       <div className="flex w-full justify-center">
         <h2 className="text-4xl">
-          Welcome,
+          Welcome,{" "}
           <span
             onClick={() => {
-              addNote("new Note", null);
+              addNote("New Note", null);
             }}
             className="cursor-pointer underline hover:font-semibold"
           >

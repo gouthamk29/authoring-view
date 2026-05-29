@@ -52,12 +52,21 @@ const router = createBrowserRouter([
     ],
   },
 ]);
+
+// createRoot(document.getElementById("root")!).render(
+//   <StrictMode >
+//     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+//       <AuthProvider>
+//         <RouterProvider router={router} />
+//       </AuthProvider>
+//     </ThemeProvider>
+//   </StrictMode>,
+// );
+
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </ThemeProvider>
-  </StrictMode>,
+  <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  </ThemeProvider>,
 );

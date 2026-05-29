@@ -1,17 +1,15 @@
-import type {
-  WorkSpace,
-  WorkspaceStore,
-  LeafNode,
-  TreeNode,
-} from "@/types/workspace";
+import type { WorkSpace, LeafNode, TreeNode } from "@/types/workspace";
 import { create } from "zustand";
-
-const STORAGE_KEY = "workspaces";
+import { useEditorStore } from "./editorStore";
+import {
+  getWorkspaceFromStorage,
+  saveWorkspaceToStorage,
+} from "./workspaceStorage";
 
 type NodeStoreType = {
   workSpace: WorkSpace | null;
   activeLeafNodeId: string;
-  activeLeafData: any;
+
   userId: string | null;
 
   initWorkSpace: (workspaceId: string, userId: string) => void;
@@ -22,7 +20,6 @@ type NodeStoreType = {
   addNode: (name: string, parentId: string | null) => void;
   addLeafNode: (name: string, parentId: string | null) => void;
 
-  handleDocumentChange: (newDocument: any) => void;
   handleLeafClick: (leafId: string) => void;
 
   renameNode: (nodeId: string, newName: string) => void;
@@ -35,19 +32,12 @@ type NodeStoreType = {
 export const useNodeStore = create<NodeStoreType>((set, get) => ({
   workSpace: null,
   activeLeafNodeId: "",
-  activeLeafData: null,
+
   userId: null,
 
   initWorkSpace: (workspaceId, userId) => {
     try {
-      const store: WorkspaceStore = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "{}",
-      );
-
-      const activeWorkspace = store[userId]?.workspaces?.find(
-        (w: WorkSpace) => w.id === workspaceId,
-      );
-
+      const activeWorkspace = getWorkspaceFromStorage(workspaceId, userId);
       if (!activeWorkspace) return;
 
       const initialLeafId = findInitialLeafNodeId(activeWorkspace);
@@ -56,8 +46,11 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
         userId,
         workSpace: activeWorkspace,
         activeLeafNodeId: initialLeafId || "empty",
-        activeLeafData: findLeafData(activeWorkspace, initialLeafId || ""),
       });
+
+      useEditorStore
+        .getState()
+        .setActiveDocument(findLeafData(activeWorkspace, initialLeafId || ""));
     } catch (error) {
       console.error(error);
     }
@@ -68,25 +61,10 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
       const userId = get().userId;
       if (!userId) return;
 
-      const store: WorkspaceStore = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "{}",
-      );
-
-      const workspaces = store[userId]?.workspaces || [];
-
-      store[userId] = {
-        workspaces: workspaces.map((w: WorkSpace) =>
-          w.id === updatedWorkspace.id ? updatedWorkspace : w,
-        ),
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-
-      const activeLeafId = get().activeLeafNodeId;
+      saveWorkspaceToStorage(userId, updatedWorkspace);
 
       set({
         workSpace: updatedWorkspace,
-        activeLeafData: findLeafData(updatedWorkspace, activeLeafId),
       });
     } catch (error) {
       console.error("Error saving workspace:", error);
@@ -98,12 +76,16 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
 
     set({
       activeLeafNodeId: leafId,
-      activeLeafData: ws ? findLeafData(ws, leafId) : null,
     });
+
+    useEditorStore
+      .getState()
+      .setActiveDocument(ws ? findLeafData(ws, leafId) : null);
   },
 
   addNode: (name, parentId) => {
     const ws = get().workSpace;
+    const userId = get().userId;
     if (!ws) return;
 
     const newNode: TreeNode = {
@@ -127,7 +109,13 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
             ),
           };
 
-    get().saveWorkspace(updatedWorkspace);
+    if (!userId) return;
+
+    saveWorkspaceToStorage(userId, updatedWorkspace);
+
+    set({
+      workSpace: updatedWorkspace,
+    });
   },
 
   addLeafNode: (name, parentId) => {
@@ -158,19 +146,9 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
 
     set({
       activeLeafNodeId: newLeaf.id,
-      activeLeafData: newLeaf.data,
     });
 
-    get().saveWorkspace(updatedWorkspace);
-  },
-
-  handleDocumentChange: (newDocument) => {
-    const ws = get().workSpace;
-    const activeLeafId = get().activeLeafNodeId;
-
-    if (!ws || !activeLeafId || activeLeafId === "empty") return;
-
-    const updatedWorkspace = updateLeafData(ws, activeLeafId, newDocument);
+    useEditorStore.getState().setActiveDocument(newLeaf.data);
 
     get().saveWorkspace(updatedWorkspace);
   },
@@ -236,8 +214,11 @@ export const useNodeStore = create<NodeStoreType>((set, get) => ({
 
     set({
       activeLeafNodeId: nextActiveLeafId,
-      activeLeafData: findLeafData(updatedWorkspace, nextActiveLeafId),
     });
+
+    useEditorStore
+      .getState()
+      .setActiveDocument(findLeafData(updatedWorkspace, nextActiveLeafId));
 
     get().saveWorkspace(updatedWorkspace);
   },

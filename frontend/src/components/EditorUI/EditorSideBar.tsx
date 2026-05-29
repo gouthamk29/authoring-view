@@ -1,9 +1,10 @@
-import type { LeafNode, TreeNode, WorkSpace } from "@/types/workspace";
+import type { LeafNode, TreeNode } from "@/types/workspace";
 import { Sidebar } from "../ui/sidebar";
 import { Button } from "../ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, LayersPlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNodeStore } from "@/store/nodeStore";
 
 import {
   AlertDialog,
@@ -15,10 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-/* =========================
-   DELETE CONFIRM MODAL
-========================= */
 
 function DeleteConfirmDialog({
   open,
@@ -55,31 +52,17 @@ function DeleteConfirmDialog({
   );
 }
 
-/* =========================
-   SIDEBAR
-========================= */
+export function WorkSpaceSidebar() {
+  const workspaceName = useNodeStore(
+    (state) => state.workSpace?.name ?? "Workspace",
+  );
 
-export function WorkSpaceSidebar({
-  workspace,
-  addNode,
-  addLeaf,
-  onLeafClick,
-  activeLeafId,
-  renameNode,
-  deleteNode,
-  renameLeaf,
-  deleteLeaf,
-}: {
-  workspace: WorkSpace;
-  addNode: (name: string, parentId: string | null) => void;
-  addLeaf: (name: string, parentId: string | null) => void;
-  onLeafClick: (leafId: string) => void;
-  activeLeafId: string;
-  renameNode: (nodeId: string, newName: string) => void;
-  deleteNode: (nodeId: string) => void;
-  renameLeaf: (nodeId: string, newName: string) => void;
-  deleteLeaf: (nodeId: string) => void;
-}) {
+  const nodes = useNodeStore((state) => state.workSpace?.nodes ?? []);
+  const leafNodes = useNodeStore((state) => state.workSpace?.leafNodes ?? []);
+
+  const addNode = useNodeStore((state) => state.addNode);
+  const addLeafNode = useNodeStore((state) => state.addLeafNode);
+
   function handleAddCollection() {
     const random = Math.floor(Math.random() * 10000);
     addNode(`Collection:${random}`, null);
@@ -87,14 +70,14 @@ export function WorkSpaceSidebar({
 
   function handleAddLeafNode() {
     const random = Math.floor(Math.random() * 10000);
-    addLeaf(`Leaf:${random}`, null);
+    addLeafNode(`Leaf:${random}`, null);
   }
 
   return (
     <Sidebar>
       <div className="flex flex-col gap-2 p-2">
         <div className="rounded-md border px-4 py-1 text-center text-2xl font-semibold">
-          {String(workspace?.name)}
+          {workspaceName}
         </div>
 
         <div className="flex gap-2">
@@ -115,68 +98,74 @@ export function WorkSpaceSidebar({
           </Button>
         </div>
 
-        <TreeViewer
-          workspace={workspace}
-          addNode={addNode}
-          addLeaf={addLeaf}
-          onLeafClick={onLeafClick}
-          activeLeafId={activeLeafId}
-          renameNode={renameNode}
-          deleteNode={deleteNode}
-          renameLeaf={renameLeaf}
-          deleteLeaf={deleteLeaf}
-        />
+        <TreeViewer nodes={nodes} leafNodes={leafNodes} />
       </div>
     </Sidebar>
   );
 }
 
-/* =========================
-   TREE VIEWER
-========================= */
+type TreeViewerProps = {
+  nodes: TreeNode[];
+  leafNodes: LeafNode[];
+};
 
-function TreeViewer(props: any) {
+function TreeViewer({ nodes, leafNodes }: TreeViewerProps) {
   return (
     <div className="flex flex-col gap-1">
-      {props.workspace?.nodes?.map((node: TreeNode) => (
-        <NodeItem key={node.id} {...props} node={node} depth={0} />
+      {nodes.map((node) => (
+        <NodeItem key={node.id} node={node} depth={0} />
       ))}
 
-      {props.workspace?.leafNodes?.map((leaf: LeafNode) => (
-        <LeafItem key={leaf.id} {...props} leaf={leaf} depth={0} />
+      {leafNodes.map((leaf) => (
+        <LeafItem key={leaf.id} leaf={leaf} depth={0} />
       ))}
     </div>
   );
 }
 
-/* =========================
-   NODE ITEM
-========================= */
+type NodeItemProps = {
+  node: TreeNode;
+  depth: number;
+};
 
-function NodeItem({
-  node,
-  addLeaf,
-  addNode,
-  onLeafClick,
-  activeLeafId,
-  depth,
-  renameNode,
-  deleteNode,
-  renameLeaf,
-  deleteLeaf,
-}: any) {
+function NodeItem({ node, depth }: NodeItemProps) {
+  const addNode = useNodeStore((state) => state.addNode);
+  const addLeafNode = useNodeStore((state) => state.addLeafNode);
+  const renameNode = useNodeStore((state) => state.renameNode);
+  const deleteNode = useNodeStore((state) => state.deleteNode);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(node.name);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const hasChildren = node.nodes.length > 0 || node.leafNodes.length > 0;
+  useEffect(() => {
+    setName(node.name);
+  }, [node.name]);
+
+  const hasChildren =
+    (node.nodes?.length ?? 0) > 0 || (node.leafNodes?.length ?? 0) > 0;
+
+  function handleRename() {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setName(node.name);
+      setEditing(false);
+      return;
+    }
+
+    if (trimmedName !== node.name) {
+      renameNode(node.id, trimmedName);
+    }
+
+    setEditing(false);
+  }
 
   return (
     <div className="mt-1" style={{ marginLeft: `${depth * 1.25}rem` }}>
       <div
-        onClick={() => hasChildren && setIsExpanded((p: boolean) => !p)}
+        onClick={() => hasChildren && setIsExpanded((previous) => !previous)}
         className={cn(
           "flex cursor-pointer items-center justify-between rounded-md border p-2",
           "bg-green-200 hover:bg-green-300",
@@ -194,12 +183,20 @@ function NodeItem({
             <input
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => {
-                renameNode(node.id, name);
-                setEditing(false);
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => setName(event.target.value)}
+              onBlur={handleRename}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleRename();
+                }
+
+                if (event.key === "Escape") {
+                  setName(node.name);
+                  setEditing(false);
+                }
               }}
-              className="w-full rounded border px-2 py-1 text-sm"
+              className="w-full rounded border px-2 py-1 text-sm text-black"
             />
           ) : (
             <span className="truncate text-sm font-medium">{node.name}</span>
@@ -208,7 +205,7 @@ function NodeItem({
 
         <div
           className="flex items-center gap-2"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
           <Pencil size={15} onClick={() => setEditing(true)} />
 
@@ -230,7 +227,7 @@ function NodeItem({
             size={15}
             onClick={() => {
               setIsExpanded(true);
-              addLeaf("New Note", node.id);
+              addLeafNode("New Note", node.id);
             }}
           />
         </div>
@@ -238,22 +235,12 @@ function NodeItem({
 
       {isExpanded && (
         <div className="mt-1">
-          {node.nodes.map((child: TreeNode) => (
-            <NodeItem
-              key={child.id}
-              {...arguments[0]}
-              node={child}
-              depth={depth + 1}
-            />
+          {(node.nodes ?? []).map((child) => (
+            <NodeItem key={child.id} node={child} depth={depth + 1} />
           ))}
 
-          {node.leafNodes.map((leaf: LeafNode) => (
-            <LeafItem
-              key={leaf.id}
-              {...arguments[0]}
-              leaf={leaf}
-              depth={depth + 1}
-            />
+          {(node.leafNodes ?? []).map((leaf) => (
+            <LeafItem key={leaf.id} leaf={leaf} depth={depth + 1} />
           ))}
         </div>
       )}
@@ -271,63 +258,87 @@ function NodeItem({
     </div>
   );
 }
+type LeafItemProps = {
+  leaf: LeafNode;
+  depth: number;
+};
 
-/* =========================
-   LEAF ITEM
-========================= */
+function LeafItem({ leaf, depth }: LeafItemProps) {
+  const isActive = useNodeStore((state) => state.activeLeafNodeId === leaf.id);
+  const handleLeafClick = useNodeStore((state) => state.handleLeafClick);
+  const renameLeaf = useNodeStore((state) => state.renameLeaf);
+  const deleteLeaf = useNodeStore((state) => state.deleteLeaf);
 
-function LeafItem({
-  leaf,
-  onLeafClick,
-  activeLeafId,
-  depth,
-  renameLeaf,
-  deleteLeaf,
-}: any) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(leaf.name);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  useEffect(() => {
+    setName(leaf.name);
+  }, [leaf.name]);
+
+  function handleRename() {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setName(leaf.name);
+      setEditing(false);
+      return;
+    }
+
+    if (trimmedName !== leaf.name) {
+      renameLeaf(leaf.id, trimmedName);
+    }
+
+    setEditing(false);
+  }
 
   return (
     <div className="mt-1" style={{ marginLeft: `${depth * 1.25}rem` }}>
       <div
         className={cn(
           "flex items-center justify-between rounded-md border p-2",
-          activeLeafId === leaf.id
-            ? "bg-blue-700 text-white"
-            : "bg-blue-200 hover:bg-blue-300",
+          isActive ? "bg-blue-700 text-white" : "bg-blue-200 hover:bg-blue-300",
         )}
       >
         <div
           className="flex-1 cursor-pointer"
-          onClick={() => onLeafClick(leaf.id)}
+          onClick={() => handleLeafClick(leaf.id)}
         >
           {editing ? (
             <input
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => {
-                renameLeaf(leaf.id, name);
-                setEditing(false);
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => setName(event.target.value)}
+              onBlur={handleRename}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleRename();
+                }
+
+                if (event.key === "Escape") {
+                  setName(leaf.name);
+                  setEditing(false);
+                }
               }}
-              className="w-full rounded border px-2 py-1 text-sm"
+              className="w-full rounded border px-2 py-1 text-sm text-black"
             />
           ) : (
             <span className="truncate text-sm font-medium">{leaf.name}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          onClick={(event) => event.stopPropagation()}
+        >
           <Pencil size={15} onClick={() => setEditing(true)} />
 
           <Trash2
             size={15}
             className="text-red-500"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteOpen(true);
-            }}
+            onClick={() => setDeleteOpen(true)}
           />
         </div>
       </div>
